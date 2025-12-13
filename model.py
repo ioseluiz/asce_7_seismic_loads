@@ -104,15 +104,19 @@ class SeismicModel:
             else:
                 Cs_max = (SD1 * TL) / (T_used**2 * (R / Ie))
                 
+            # Limites Minimos
             Cs_min = 0.01 
-            Cs_min_2 = 0.044 * SDS * Ie
+            
+            # Modificación solicitada: Eq 12.8-5 ajustada (0.044 * SDS, sin Ie)
+            Cs_min_2 = 0.044 * SDS 
             
             Cs_min_3 = 0.0
             if S1 >= 0.6:
                 Cs_min_3 = (0.5 * S1) / (R / Ie)
                 
             Cs = min(Cs_calc, Cs_max)
-            Cs = max(Cs, Cs_min_2, Cs_min_3, 0.01)
+            # Aplicamos el máximo de los mínimos
+            Cs = max(Cs, Cs_min_2, Cs_min_3, Cs_min)
             
             # 4. Cortante Basal (Cálculo interno en kN)
             W_total_kN = sum([p['w'] for p in stories])
@@ -197,6 +201,7 @@ class SeismicModel:
                 'SDS': SDS, 'SD1': SD1,
                 'Ta': Ta, 'T_used': T_used, 'Cu': Cu,
                 'Cs': Cs, 
+                'Cs_min_local': Cs_min_2, # Guardar valor min local para reporte
                 'W_total': W_total_out, # Convertido
                 'V': V_out,             # Convertido
                 'k': k,
@@ -248,13 +253,22 @@ Parámetros de diseño (2/3 del sismo máximo considerado):
 **Cu × Ta** = {r['Cu']:.2f} × {r['Ta']:.3f} = **{r['Cu']*r['Ta']:.3f} s**
 **Periodo de Diseño (T)**: {r['T_used']:.3f} s
 
-## 5. Cortante Basal
-**Cs** = SDS / (R/Ie) = **{r['Cs']:.4f}**
+## 5. Cortante Basal (Sec. 12.8.1)
+El coeficiente de respuesta sísmica se calcula considerando:
 
-El cortante basal elástico es:
+1.  **Cálculo Base (Ec. 12.8-2):**
+    Cs = SDS / (R/Ie) = {r['SDS']:.3f} / ({inp['R']}/{inp['Ie']}) = {r['SDS'] / (inp['R']/inp['Ie']):.4f}
+
+2.  **Mínimo Local (Ec. 12.8-5 Modificada REP-2021):**
+    Cs,min = 0.044 × SDS = 0.044 × {r['SDS']:.3f} = {r['Cs_min_local']:.4f}
+
+**Coeficiente de Diseño Final:**
+**Cs** = **{r['Cs']:.4f}**
+
+El cortante basal elástico (Ec. 12.8-1) es:
 **V** = Cs × W = {r['Cs']:.4f} × {r['W_total']:.2f} = **{r['V']:.2f} {u}**
 
-## 6. Distribución Vertical de Fuerzas
+## 6. Distribución Vertical de Fuerzas (Sec. 12.8.3)
 Exponente de distribución **k** = {r['k']:.2f}.
 
 | Nivel | Altura hx (m) | Peso w ({u}) | Cvx | Fx ({u}) | Vx ({u}) |
