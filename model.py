@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 
 class SeismicModel:
     """
@@ -214,6 +215,34 @@ class SeismicModel:
             
         except Exception as e:
             return {'error': str(e)}
+        
+    def export_spectrum_to_csv(self, filename):
+        """
+        Exporta los datos del espectro (Periodo vs Sa) a un archivo
+        """
+
+        if not self.results or 'spectrum' not in self.results:
+            return False, "No hay datos de espectro para exportar."
+        
+        try:
+            periods, sas = self.results['spectrum']
+
+            with open(filename, mode='w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Periodo (s)', 'Aceleracion (g)'])
+
+                for t, sa in zip(periods, sas):
+                    writer.writerow([f"{t:.4f}", f"{sa:.4f}"])
+
+            return True, "Archivo exportado exitosamente."
+        
+        except Exception as e:
+            return False, f"Error al escribir archivo: {str(e)}"
+        
+        
+
+
+
 
     def generate_markdown_report(self):
         """Genera un reporte formateado en Markdown compatible con PyQt5."""

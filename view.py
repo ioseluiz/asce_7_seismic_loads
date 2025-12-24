@@ -97,10 +97,48 @@ class SeismicView(QMainWindow):
         btn_layout.addWidget(self.btn_add_row)
         btn_layout.addWidget(self.btn_del_row)
         input_layout.addLayout(btn_layout)
-        
+
+        # Botones de Accion
         self.btn_calc = QPushButton("CALCULAR CARGAS")
         self.btn_calc.setStyleSheet("font-weight: bold; font-size: 14px; padding: 10px; background-color: #007bff; color: white;")
         input_layout.addWidget(self.btn_calc)
+
+        # Boton para Exportar CSV
+        self.btn_export = QPushButton("Exportar Espectro (.csv)")
+
+        # DEFINICIÓN DE ESTILOS DINÁMICOS (CSS)
+        self.btn_export.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                border-radius: 4px;
+            }
+            
+            /* Estado DESHABILITADO: Gris opaco */
+            QPushButton:disabled {
+                background-color: #e0e0e0;
+                color: #a0a0a0;
+                border: 1px solid #cccccc;
+            }
+
+            /* Estado HABILITADO: Verde éxito (Tu color de UI) */
+            QPushButton:enabled {
+                background-color: #28a745;
+                color: white;
+                border: 1px solid #218838;
+            }
+            
+            /* Opcional: Efecto al pasar el mouse cuando está habilitado */
+            QPushButton:enabled:hover {
+                background-color: #218838;
+            }
+        """)
+
+
+        
+        self.btn_export.setEnabled(False) # Deshabilitado hasta calcular
+        self.btn_export.setToolTip("Genera un archivo CSV compatible con ETABS/SAP2000")
+        input_layout.addWidget(self.btn_export)
         
         splitter.addWidget(input_widget)
         

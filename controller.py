@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QFileDialog
 
 class SeismicController:
     """
@@ -13,6 +13,8 @@ class SeismicController:
         self.view.btn_calc.clicked.connect(self.handle_calculate)
         self.view.btn_add_row.clicked.connect(self.add_story)
         self.view.btn_del_row.clicked.connect(self.del_story)
+
+        self.view.btn_export.clicked.connect(self.handle_export_csv)
         
         # Conectar señal de cambio de unidad (Recalcular al cambiar)
         self.view.unit_combo.currentIndexChanged.connect(self.handle_calculate)
@@ -43,6 +45,7 @@ class SeismicController:
         
         # Habilitar el selector de unidades ahora que hay resultados
         self.view.unit_combo.setEnabled(True)
+        self.view.btn_export.setEnabled(True)
             
         # Generar Reporte
         report_md = self.model.generate_markdown_report()
@@ -53,3 +56,24 @@ class SeismicController:
         
         # Cambiar a tab de resultados si es la primera vez (opcional)
         # self.view.tabs.setCurrentIndex(0)
+
+    def handle_export_csv(self):
+        """
+        Maneja la exportacion del archivo CSV mediante dialogo.
+        """
+
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(
+            self.view,
+            "Guardar espectro de diseño",
+            "espectro_asce7_05.csv",
+            "Archivos CSV (*.csv);;Todos los archivos (*)",
+            options=options
+        )
+
+        if fileName:
+            success, message = self.model.export_spectrum_to_csv(fileName)
+            if success:
+                QMessageBox.information(self.view, "Exportación Exitosa", message)
+            else:
+                QMessageBox.critical(self.view, "Error de Exportación", message)
