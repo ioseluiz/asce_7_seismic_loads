@@ -45,6 +45,16 @@ class SeismicView(QMainWindow):
         
         self.r_input = QDoubleSpinBox()
         self.r_input.setValue(8.0)
+
+        self.omega_input = QDoubleSpinBox()
+        self.omega_input.setRange(1.0, 3.0)
+        self.omega_input.setSingleStep(0.5)
+        self.omega_input.setValue(3.0)
+        self.omega_input.setToolTip("Factor de Sobreresistencia del sistema (Tabla 12.2-1)")
+
+        self.rho_combo = QComboBox()
+        self.rho_combo.addItems(['1.0', '1.3'])
+        self.rho_combo.setToolTip("Factor de Redundancia (Sección 12.3.4)")
         
         self.ie_input = QDoubleSpinBox()
         self.ie_input.setValue(1.0)
@@ -70,6 +80,8 @@ class SeismicView(QMainWindow):
         form_layout.addRow("TL (Periodo Largo):", self.tl_input)
         form_layout.addRow("Clase de Sitio:", self.site_class_combo)
         form_layout.addRow("R (Mod. Respuesta):", self.r_input)
+        form_layout.addRow("Ω0 (Sobreresistencia):", self.omega_input)  # <--- NUEVO
+        form_layout.addRow("ρ (Redundancia):", self.rho_combo)
         form_layout.addRow("Ie (Importancia):", self.ie_input)
         form_layout.addRow("Tipo Estructura:", self.struct_type_combo)
         
@@ -185,12 +197,18 @@ class SeismicView(QMainWindow):
         rows = self.stories_table.rowCount()
         for i in range(rows):
             try:
-                h = float(self.stories_table.item(i, 0).text())
-                w = float(self.stories_table.item(i, 1).text())
-                stories.append({'h': h, 'w': w, 'id': i+1})
-            except ValueError:
-                pass # Ignorar filas vacías o invalidas
+                item_h = self.stories_table.item(i, 0)
+                item_w = self.stories_table.item(i, 1)
                 
+                # Validación extra para evitar crashes si la celda está vacía
+                if item_h and item_w and item_h.text() and item_w.text():
+                    h = float(item_h.text())
+                    w = float(item_w.text())
+                    stories.append({'h': h, 'w': w, 'id': i+1})
+            except ValueError:
+                pass 
+                
+        # AQUÍ ESTABA EL ERROR POTENCIAL DE INDENTACIÓN
         return {
             'unit': self.unit_combo.currentText(),
             'Ss': self.ss_input.value(),
@@ -198,6 +216,8 @@ class SeismicView(QMainWindow):
             'TL': self.tl_input.value(),
             'SiteClass': self.site_class_combo.currentText(),
             'R': self.r_input.value(),
+            'Omega0': self.omega_input.value(),
+            'Rho': float(self.rho_combo.currentText()),
             'Ie': self.ie_input.value(),
             'StructureType': self.struct_type_combo.currentText(),
             'stories': stories
