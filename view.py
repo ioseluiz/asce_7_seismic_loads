@@ -144,7 +144,7 @@ class SeismicView(QMainWindow):
         # Tab 1: Resumen y Reporte
         self.report_viewer = QTextEdit()
         self.report_viewer.setReadOnly(True)
-        self.tabs.addTab(self.report_viewer, "Reporte Markdown")
+        self.tabs.addTab(self.report_viewer, "Reporte")
         
         # Tab 2: Gráficos
         graphs_widget = QWidget()
@@ -200,7 +200,7 @@ class SeismicView(QMainWindow):
         T0, Ts, TL = results['T0'], results['Ts'], results['inputs']['TL']
         SDS, SD1 = results['SDS'], results['SD1']
         
-        # 1. ESPECTRO
+        # 1. ESPECTRO (Gráfico Superior)
         ax1 = self.figure.add_subplot(211) 
         ax1.plot(periods, sas, 'k-', linewidth=2.5, label='Espectro ASCE 7-05')
         max_sa = max(sas)
@@ -225,31 +225,60 @@ class SeismicView(QMainWindow):
         ax1.grid(True, linestyle=':', alpha=0.6)
         ax1.legend(loc='upper right', frameon=True, fontsize='small')
 
-        # 2. MODELO
+        # 2. MODELO ESTRUCTURAL CON CARGAS (Gráfico Inferior Izquierdo)
         ax2 = self.figure.add_subplot(223)
         dist = results['distribution']
         heights = [0] + [d['hx'] for d in dist]
+        
+        # Dibujar la estructura y las flechas
         for d in dist:
             h = d['hx']
-            ax2.plot([-2, 2], [h, h], 'k-', linewidth=2)
+            fx = d['Fx']
+            
+            # Dibujo del pórtico
+            ax2.plot([-2, 2], [h, h], 'k-', linewidth=2) # Vigas
+            
+            # Columnas hacia abajo
             prev_h = next((x['hx'] for x in dist if x['hx'] < h), 0)
-            ax2.plot([-2, -2], [prev_h, h], 'k-', linewidth=1)
-            ax2.plot([2, 2], [prev_h, h], 'k-', linewidth=1)
-            ax2.text(0, h + 0.1, f"W={d['w']:.0f}", ha='center', fontsize=8)
-        ax2.set_xlim(-5, 5)
-        ax2.set_ylim(0, max(heights) * 1.15)
-        ax2.set_title("Modelo")
-        ax2.axis('off')
+            ax2.plot([-2, -2], [prev_h, h], 'k-', linewidth=1) # Columna Izq
+            ax2.plot([2, 2], [prev_h, h], 'k-', linewidth=1)   # Columna Der
+            
+            # Etiqueta de peso (W) en el centro
+            ax2.text(0, h + 0.2, f"W={d['w']:.0f}", ha='center', fontsize=7, color='#555')
+            
+            # --- NUEVO: Flecha de Fuerza Horizontal ---
+            # Dibuja una flecha roja apuntando desde la izquierda hacia el nodo izquierdo
+            ax2.annotate(
+                f"F={fx:.1f}", 
+                xy=(-2, h),           # Punta de la flecha (en el nodo)
+                xytext=(-4.5, h),     # Cola de la flecha (más a la izquierda)
+                arrowprops=dict(facecolor='#d35400', edgecolor='none', shrink=0.05, width=2, headwidth=8),
+                fontsize=8,
+                color='#d35400',
+                fontweight='bold',
+                va='center',
+                ha='right'
+            )
 
-        # 3. FUERZAS
+        ax2.set_xlim(-6, 3) # Ampliamos el límite izquierdo para que quepan las flechas
+        ax2.set_ylim(0, max(heights) * 1.15)
+        ax2.set_title(f"Modelo y Cargas ({unit})", fontsize=10)
+        ax2.axis('off') # Ocultar ejes para que parezca un diagrama puro
+
+        # 3. DIAGRAMA DE BARRAS DE FUERZAS (Gráfico Inferior Derecho)
         ax3 = self.figure.add_subplot(224)
         forces = [d['Fx'] for d in dist]
         h_vals = [d['hx'] for d in dist]
+        
+        # Barras horizontales
         ax3.barh(h_vals, forces, height=max(h_vals)*0.05, align='center', color='orange', alpha=0.7, edgecolor='black')
-        ax3.set_title(f"Fuerzas Fx ({unit})")
+        
+        ax3.set_title(f"Perfil de Fuerzas Fx ({unit})", fontsize=10)
         ax3.grid(True, axis='x', linestyle='--', alpha=0.5)
         x_limit = max(forces) * 1.3 if forces else 1
         ax3.set_xlim(0, x_limit)
+        
+        # Etiquetas de valor al final de las barras
         for i, v in enumerate(forces):
             ax3.text(v, h_vals[i], f" {v:.1f}", va='center', fontsize=8, fontweight='bold')
 
@@ -266,7 +295,7 @@ class SeismicView(QMainWindow):
         original_size = self.figure.get_size_inches()
 
         # 2. Tamaño para PDF (Ligeramente menor que 8.5x11 para margenes)
-        self.figure.set_size_inches(3.5, 5.0) 
+        self.figure.set_size_inches(6.0, 7.5) 
         
         buf = io.BytesIO()
         self.figure.savefig(buf, format='png', bbox_inches='tight', dpi=150)
