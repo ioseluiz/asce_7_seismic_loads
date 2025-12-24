@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 class SeismicView(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Calculadora Sísmica ASCE 7-05")
+        self.setWindowTitle("Calculadora Sísmica ASCE 7-05 / REP-2021")
         self.resize(1200, 800)
         
         # Widget Central

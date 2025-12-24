@@ -251,7 +251,7 @@ class SeismicModel:
         html = f"""
         <body style="font-family: Arial, sans-serif;">
         <h1 style="{h1_style}">Memoria de Cálculo Sísmico Detallada</h1>
-        <p style="text-align:center; font-size: 9pt; color: #666; margin-bottom: 20pt;">Basado en ASCE 7-05 (Capítulos 11 y 12)</p>
+        <p style="text-align:center; font-size: 9pt; color: #666; margin-bottom: 20pt;">Basado en REP-2021 y ASCE 7-05 (Capítulos 11 y 12)</p>
         
         <h2 style="{h2_style}">1. Parámetros de Sitio y Diseño</h2>
         <table cellspacing="0" cellpadding="4" style="{table_style}">
@@ -259,7 +259,7 @@ class SeismicModel:
               <tr><th style="{th_style}" width="40%">Parámetro</th><th style="{th_style}" width="30%">Valor</th><th style="{th_style}" width="30%">Referencia ASCE 7-05</th></tr>
           </thead>
           <tbody>
-              <tr><td style="{td_style}">Ss / S1</td><td style="{td_style}">{inp['Ss']:.3f} g / {inp['S1']:.3f} g</td><td style="{td_style}">Mapas Caps. 22</td></tr>
+              <tr><td style="{td_style}">Ss / S1</td><td style="{td_style}">{inp['Ss']:.3f} g / {inp['S1']:.3f} g</td><td style="{td_style}">Mapas REP-2021</td></tr>
               <tr><td style="{td_style}">Clase de Sitio</td><td style="{td_style}">{inp['SiteClass']}</td><td style="{td_style}">Tabla 20.3-1</td></tr>
               <tr><td style="{td_style}">Fa (Coef. Sitio)</td><td style="{td_style}">{r['Fa']:.2f}</td><td style="{td_style}">Tabla 11.4-1</td></tr>
               <tr><td style="{td_style}">Fv (Coef. Sitio)</td><td style="{td_style}">{r['Fv']:.2f}</td><td style="{td_style}">Tabla 11.4-2</td></tr>
