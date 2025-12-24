@@ -319,7 +319,7 @@ class SeismicModel:
         
         # HTML Completo
         html = f"""
-        <h1 style="color: #2c3e50;">Memoria de Cálculo Sísmico (ASCE 7-05)</h1>
+        <h1 style="color: #2c3e50;">Memoria de Cálculo Sísmico (ASCE 7-05 / REP-2021)</h1>
         <hr>
 
         <h2 style="color: #34495e;">1. Parámetros de Diseño</h2>
@@ -334,7 +334,7 @@ class SeismicModel:
         </table>
 
         <h2 style="color: #34495e;">2. Coeficientes y Aceleraciones</h2>
-        <p>Interpolación de tablas (ASCE 11.4):</p>
+        <p>Interpolación de tablas 11.4(ASCE 7-05):</p>
         <ul>
             <li><b>F<sub>a</sub></b> = {r['Fa']:.3f}</li>
             <li><b>F<sub>v</sub></b> = {r['Fv']:.3f}</li>
