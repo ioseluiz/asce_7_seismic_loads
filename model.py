@@ -239,73 +239,126 @@ class SeismicModel:
         except Exception as e:
             return False, f"Error al escribir archivo: {str(e)}"
         
-        
 
 
 
 
-    def generate_markdown_report(self):
-        """Genera un reporte formateado en Markdown compatible con PyQt5."""
+
+    def generate_html_report(self):
+        """
+        Genera un reporte en formato HTML rico, compatible con QTextEdit,
+        usando subíndices y formato legible en lugar de LaTeX crudo.
+        """
         if not self.results or 'error' in self.results:
-            return "No hay resultados válidos para generar el reporte."
+            return "<h3>No hay resultados válidos para generar el reporte.</h3>"
             
         r = self.results
         inp = r['inputs']
         u = inp.get('unit', 'kN')
+        R_Ie = inp['R'] / inp['Ie']
         
-        md = f"""
-# Reporte de Cálculo de Cargas Sísmicas (ASCE 7-05)
+        # Estilos básicos para las tablas HTML
+        table_style = 'border-collapse: collapse; width: 100%; border: 1px solid #dddddd;'
+        th_style = 'background-color: #f2f2f2; border: 1px solid #dddddd; padding: 8px; text-align: left;'
+        td_style = 'border: 1px solid #dddddd; padding: 8px;'
+        
+        # Construcción del HTML
+        html = f"""
+        <h1 style="color: #2c3e50;">Memoria de Cálculo Sísmico (ASCE 7-05)</h1>
+        <hr>
 
-## 1. Parámetros de Entrada
-- **Ss**: {inp['Ss']} g
-- **S1**: {inp['S1']} g
-- **Clase de Sitio**: {inp['SiteClass']}
-- **Factor de Importancia (Ie)**: {inp['Ie']}
-- **Coeficiente de Modificación de Respuesta (R)**: {inp['R']}
-- **Periodo Largo de Transición (TL)**: {inp['TL']} s
-- **Unidad de Resultados**: {u}
+        <h2 style="color: #34495e;">1. Parámetros de Diseño</h2>
+        <table style="{table_style}">
+          <tr><th style="{th_style}">Parámetro</th><th style="{th_style}">Valor</th><th style="{th_style}">Descripción</th></tr>
+          <tr><td style="{td_style}"><b>S<sub>s</sub></b></td><td style="{td_style}">{inp['Ss']:.3f} g</td><td style="{td_style}">Aceleración MCER (0.2s)</td></tr>
+          <tr><td style="{td_style}"><b>S<sub>1</sub></b></td><td style="{td_style}">{inp['S1']:.3f} g</td><td style="{td_style}">Aceleración MCER (1.0s)</td></tr>
+          <tr><td style="{td_style}"><b>Clase Sitio</b></td><td style="{td_style}">{inp['SiteClass']}</td><td style="{td_style}">Perfil de Suelo</td></tr>
+          <tr><td style="{td_style}"><b>T<sub>L</sub></b></td><td style="{td_style}">{inp['TL']:.1f} s</td><td style="{td_style}">Periodo Largo Transición</td></tr>
+          <tr><td style="{td_style}"><b>I<sub>e</sub></b></td><td style="{td_style}">{inp['Ie']:.2f}</td><td style="{td_style}">Importancia</td></tr>
+          <tr><td style="{td_style}"><b>R</b></td><td style="{td_style}">{inp['R']:.1f}</td><td style="{td_style}">Modificación Respuesta</td></tr>
+        </table>
 
-## 2. Coeficientes de Sitio (Tablas 11.4-1 y 11.4-2)
-- **Fa** = {r['Fa']:.3f}
-- **Fv** = {r['Fv']:.3f}
+        <h2 style="color: #34495e;">2. Coeficientes y Aceleraciones</h2>
+        <p>Interpolación de tablas (ASCE 11.4):</p>
+        <ul>
+            <li><b>F<sub>a</sub></b> = {r['Fa']:.3f}</li>
+            <li><b>F<sub>v</sub></b> = {r['Fv']:.3f}</li>
+        </ul>
+        <p><b>Sismo Máximo (MCE):</b></p>
+        <blockquote>
+            S<sub>MS</sub> = F<sub>a</sub> · S<sub>s</sub> = {r['Fa']:.3f} · {inp['Ss']:.3f} = <b>{r['SMS']:.3f} g</b><br>
+            S<sub>M1</sub> = F<sub>v</sub> · S<sub>1</sub> = {r['Fv']:.3f} · {inp['S1']:.3f} = <b>{r['SM1']:.3f} g</b>
+        </blockquote>
+        <p><b>Sismo de Diseño (2/3 MCE):</b></p>
+        <blockquote>
+            S<sub>DS</sub> = (2/3) · S<sub>MS</sub> = <b>{r['SDS']:.3f} g</b><br>
+            S<sub>D1</sub> = (2/3) · S<sub>M1</sub> = <b>{r['SD1']:.3f} g</b>
+        </blockquote>
 
-## 3. Parámetros de Aceleración Espectral
-**SMS** = Fa × Ss = **{r['SMS']:.3f} g**
-**SM1** = Fv × S1 = **{r['SM1']:.3f} g**
+        <h2 style="color: #34495e;">3. Definición del Espectro</h2>
+        <p>Puntos de control de la curva (T<sub>0</sub>, T<sub>S</sub>, T<sub>L</sub>):</p>
+        <ul>
+            <li><b>T<sub>0</sub></b> = 0.2 · (S<sub>D1</sub> / S<sub>DS</sub>) = <b>{r['T0']:.4f} s</b></li>
+            <li><b>T<sub>S</sub></b> = S<sub>D1</sub> / S<sub>DS</sub> = <b>{r['Ts']:.4f} s</b></li>
+            <li><b>T<sub>L</sub></b> = <b>{inp['TL']:.1f} s</b></li>
+        </ul>
+        
+        <p><b>Ecuaciones por tramos:</b></p>
+        <ul>
+            <li><i style="color:gray">T &lt; T<sub>0</sub> :</i> &nbsp; S<sub>a</sub> = S<sub>DS</sub> · (0.4 + 0.6 · T / T<sub>0</sub>)</li>
+            <li><i style="color:gray">T<sub>0</sub> &le; T &le; T<sub>S</sub> :</i> &nbsp; S<sub>a</sub> = <b>{r['SDS']:.3f} g</b> (Meseta)</li>
+            <li><i style="color:gray">T<sub>S</sub> &lt; T &le; T<sub>L</sub> :</i> &nbsp; S<sub>a</sub> = {r['SD1']:.3f} / T</li>
+            <li><i style="color:gray">T &gt; T<sub>L</sub> :</i> &nbsp; S<sub>a</sub> = ({r['SD1']:.3f} · {inp['TL']:.1f}) / T<sup>2</sup></li>
+        </ul>
 
-Parámetros de diseño (2/3 del sismo máximo considerado):
-**SDS** = (2/3) × SMS = **{r['SDS']:.3f} g**
-**SD1** = (2/3) × SM1 = **{r['SD1']:.3f} g**
+        <h2 style="color: #34495e;">4. Periodo Fundamental (T)</h2>
+        <p>
+        Altura Total h<sub>n</sub> = {sum(s['h'] for s in inp['stories']):.2f} m<br>
+        Periodo aproximado <b>T<sub>a</sub></b> = {r['Ta']:.4f} s<br>
+        Límite Superior <b>C<sub>u</sub>·T<sub>a</sub></b> = {r['Cu']:.3f} · {r['Ta']:.4f} = {r['Cu']*r['Ta']:.4f} s
+        </p>
+        <p style="background-color: #e8f8f5; padding: 10px; border-left: 5px solid #1abc9c;">
+        <b>Periodo de Diseño T = {r['T_used']:.4f} s</b>
+        </p>
 
-## 4. Periodo Fundamental
-**Ta** = Ct × hn^x = **{r['Ta']:.3f} s**
-**Cu × Ta** = {r['Cu']:.2f} × {r['Ta']:.3f} = **{r['Cu']*r['Ta']:.3f} s**
-**Periodo de Diseño (T)**: {r['T_used']:.3f} s
+        <h2 style="color: #34495e;">5. Cortante Basal (V)</h2>
+        <p>Coeficiente Sísmico C<sub>s</sub>:</p>
+        <ul>
+            <li>Base: S<sub>DS</sub> / (R/I<sub>e</sub>) = <b>{r['SDS']/R_Ie:.5f}</b></li>
+            <li>Máximo: S<sub>D1</sub> / (T · R/I<sub>e</sub>) = <b>{r['SD1']/(r['T_used']*R_Ie):.5f}</b></li>
+            <li>Mínimo: 0.044 · S<sub>DS</sub> = <b>{r['Cs_min_local']:.5f}</b></li>
+        </ul>
+        <p><b>C<sub>s</sub> de Diseño = {r['Cs']:.5f}</b></p>
+        <p><b>Cortante V</b> = C<sub>s</sub> · W = {r['Cs']:.5f} · {r['W_total']:.2f}<br>
+        <span style="font-size: 14pt; font-weight: bold; color: #c0392b;">V = {r['V']:.2f} {u}</span>
+        </p>
 
-## 5. Cortante Basal (Sec. 12.8.1)
-El coeficiente de respuesta sísmica se calcula considerando:
-
-1.  **Cálculo Base (Ec. 12.8-2):**
-    Cs = SDS / (R/Ie) = {r['SDS']:.3f} / ({inp['R']}/{inp['Ie']}) = {r['SDS'] / (inp['R']/inp['Ie']):.4f}
-
-2.  **Mínimo Local (Ec. 12.8-5 Modificada REP-2021):**
-    Cs,min = 0.044 × SDS = 0.044 × {r['SDS']:.3f} = {r['Cs_min_local']:.4f}
-
-**Coeficiente de Diseño Final:**
-**Cs** = **{r['Cs']:.4f}**
-
-El cortante basal elástico (Ec. 12.8-1) es:
-**V** = Cs × W = {r['Cs']:.4f} × {r['W_total']:.2f} = **{r['V']:.2f} {u}**
-
-## 6. Distribución Vertical de Fuerzas (Sec. 12.8.3)
-Exponente de distribución **k** = {r['k']:.2f}.
-
-| Nivel | Altura hx (m) | Peso w ({u}) | Cvx | Fx ({u}) | Vx ({u}) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-"""
+        <h2 style="color: #34495e;">6. Distribución Vertical (F<sub>x</sub>)</h2>
+        <p>Exponente k = {r['k']:.2f}</p>
+        <table style="{table_style}">
+          <tr style="background-color: #f2f2f2;">
+            <th style="{td_style}">Nivel</th>
+            <th style="{td_style}">h<sub>x</sub> (m)</th>
+            <th style="{td_style}">w<sub>x</sub> ({u})</th>
+            <th style="{td_style}">C<sub>vx</sub></th>
+            <th style="{td_style}">F<sub>x</sub> ({u})</th>
+            <th style="{td_style}">V<sub>x</sub> ({u})</th>
+          </tr>
+        """
+        
+        # Filas de la tabla
         dist = r['distribution'][::-1]
         for d in dist:
-            md += f"| {d['name']} | {d['hx']:.2f} | {d['w']:.2f} | {d['Cvx']:.4f} | {d['Fx']:.2f} | {d['Vx']:.2f} |\n"
+            html += f"""
+            <tr>
+                <td style="{td_style}">{d['name']}</td>
+                <td style="{td_style}">{d['hx']:.2f}</td>
+                <td style="{td_style}">{d['w']:.2f}</td>
+                <td style="{td_style}">{d['Cvx']:.4f}</td>
+                <td style="{td_style}"><b>{d['Fx']:.2f}</b></td>
+                <td style="{td_style}">{d['Vx']:.2f}</td>
+            </tr>
+            """
             
-        md += "\n*Nota: Vx es el cortante acumulado en el piso.*"
-        return md
+        html += "</table>"
+        return html

@@ -47,9 +47,9 @@ class SeismicController:
         self.view.unit_combo.setEnabled(True)
         self.view.btn_export.setEnabled(True)
             
-        # Generar Reporte
-        report_md = self.model.generate_markdown_report()
-        self.view.report_viewer.setMarkdown(report_md)
+        # Generar Reporte (Cambiamos setMarkdown por setHtml)
+        report_html = self.model.generate_html_report()
+        self.view.report_viewer.setHtml(report_html)
         
         # Generar Gráficos
         self.view.plot_results(results)
