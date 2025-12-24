@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
+from PyQt5.QtPrintSupport import QPrinter
 
 class SeismicController:
     """
@@ -14,9 +15,11 @@ class SeismicController:
         self.view.btn_add_row.clicked.connect(self.add_story)
         self.view.btn_del_row.clicked.connect(self.del_story)
 
-        self.view.btn_export.clicked.connect(self.handle_export_csv)
+        # Conectar exportaciones
+        self.view.btn_export_csv.clicked.connect(self.handle_export_csv)
+        self.view.btn_export_pdf.clicked.connect(self.handle_export_pdf)
         
-        # Conectar señal de cambio de unidad (Recalcular al cambiar)
+        # Recalcular al cambiar unidad
         self.view.unit_combo.currentIndexChanged.connect(self.handle_calculate)
         
     def add_story(self):
@@ -31,37 +34,29 @@ class SeismicController:
     def handle_calculate(self):
         inputs = self.view.get_inputs()
         
-        # Validaciones básicas
         if not inputs['stories']:
             QMessageBox.warning(self.view, "Error", "Debe definir al menos un nivel/piso.")
             return
             
-        # Calcular
         results = self.model.calculate_loads(inputs)
         
         if 'error' in results:
             QMessageBox.critical(self.view, "Error de Cálculo", str(results['error']))
             return
         
-        # Habilitar el selector de unidades ahora que hay resultados
+        # Habilitar controles
         self.view.unit_combo.setEnabled(True)
-        self.view.btn_export.setEnabled(True)
+        self.view.btn_export_csv.setEnabled(True)
+        self.view.btn_export_pdf.setEnabled(True)
             
-        # Generar Reporte (Cambiamos setMarkdown por setHtml)
+        # Generar Reporte (Texto simple en GUI)
         report_html = self.model.generate_html_report()
         self.view.report_viewer.setHtml(report_html)
         
         # Generar Gráficos
         self.view.plot_results(results)
-        
-        # Cambiar a tab de resultados si es la primera vez (opcional)
-        # self.view.tabs.setCurrentIndex(0)
 
     def handle_export_csv(self):
-        """
-        Maneja la exportacion del archivo CSV mediante dialogo.
-        """
-
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(
             self.view,
@@ -77,3 +72,44 @@ class SeismicController:
                 QMessageBox.information(self.view, "Exportación Exitosa", message)
             else:
                 QMessageBox.critical(self.view, "Error de Exportación", message)
+
+    def handle_export_pdf(self):
+        """
+        Exporta el reporte PDF incluyendo el gráfico actual.
+        """
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(
+            self.view,
+            "Guardar reporte PDF",
+            "Memoria_Calculo_Sismico.pdf",
+            "Archivos PDF (*.pdf);;Todos los archivos (*)",
+            options=options
+        )
+
+        if fileName:
+            if not fileName.endswith('.pdf'):
+                fileName += '.pdf'
+                
+            try:
+                # 1. Capturar la imagen del gráfico
+                img_data = self.view.get_plot_image_base64()
+                
+                # 2. Generar el HTML completo INCLUYENDO la imagen
+                full_html = self.model.generate_html_report(plot_img_base64=img_data)
+                
+                # 3. Guardar estado actual del visor
+                original_html = self.view.report_viewer.toHtml()
+                self.view.report_viewer.setHtml(full_html)
+                
+                printer = QPrinter(QPrinter.HighResolution)
+                printer.setOutputFormat(QPrinter.PdfFormat)
+                printer.setOutputFileName(fileName)
+                
+                self.view.report_viewer.document().print_(printer)
+                
+                # Restaurar vista sin imagen
+                self.view.report_viewer.setHtml(original_html)
+                
+                QMessageBox.information(self.view, "PDF Generado", f"Reporte guardado exitosamente en:\n{fileName}")
+            except Exception as e:
+                QMessageBox.critical(self.view, "Error", f"No se pudo generar el PDF:\n{str(e)}")
